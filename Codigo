@@ -1,0 +1,320 @@
+/*  Dot LED matrix display with Bluetooth and RTC by ELECTRONOOBS
+ *  DATE: 15/09/2019
+ *  Tutorial: https://electronoobs.com/eng_arduino_tut106.php
+ *  Video: https://www.youtube.com/watch?v=4_DX7_N_Jx0
+ *  Schematic: https://electronoobs.com/eng_arduino_tut106_sch1.php
+ *  Code: https://electronoobs.com/eng_arduino_tut106_code1.php
+ *  App: https://electronoobs.com/eng_arduino_tut106_app1.php
+ */
+
+#include "MaxMatrix.h"              //Downlaod here: https://electronoobs.com/eng_arduino_max_matrix.php
+#include "avr/pgmspace.h"         
+#include <DS3231.h>                 //Downlaod here: https://electronoobs.com/eng_arduino_ds3231.php       
+
+
+PROGMEM const unsigned char CH[] = {
+  3, 8, B00000000, B00000000, B00000000, B00000000, B00000000, // space
+  1, 8, B01011111, B00000000, B00000000, B00000000, B00000000, // !
+  3, 8, B00000011, B00000000, B00000011, B00000000, B00000000, // "
+  5, 8, B00010100, B00111110, B00010100, B00111110, B00010100, // #
+  4, 8, B00100100, B01101010, B00101011, B00010010, B00000000, // $
+  5, 8, B01100011, B00010011, B00001000, B01100100, B01100011, // %
+  5, 8, B00110110, B01001001, B01010110, B00100000, B01010000, // &
+  1, 8, B00000011, B00000000, B00000000, B00000000, B00000000, // '
+  3, 8, B00011100, B00100010, B01000001, B00000000, B00000000, // (
+  3, 8, B01000001, B00100010, B00011100, B00000000, B00000000, // )
+  5, 8, B00101000, B00011000, B00001110, B00011000, B00101000, // *
+  5, 8, B00001000, B00001000, B00111110, B00001000, B00001000, // +
+  2, 8, B10110000, B01110000, B00000000, B00000000, B00000000, // ,
+  4, 8, B00001000, B00001000, B00001000, B00001000, B00000000, // -
+  2, 8, B01100000, B01100000, B00000000, B00000000, B00000000, // .
+  4, 8, B01100000, B00011000, B00000110, B00000001, B00000000, // /
+  4, 8, B00111110, B01000001, B01000001, B00111110, B00000000, // 0
+  3, 8, B01000010, B01111111, B01000000, B00000000, B00000000, // 1
+  4, 8, B01100010, B01010001, B01001001, B01000110, B00000000, // 2
+  4, 8, B00100010, B01000001, B01001001, B00110110, B00000000, // 3
+  4, 8, B00011000, B00010100, B00010010, B01111111, B00000000, // 4
+  4, 8, B00100111, B01000101, B01000101, B00111001, B00000000, // 5
+  4, 8, B00111110, B01001001, B01001001, B00110000, B00000000, // 6
+  4, 8, B01100001, B00010001, B00001001, B00000111, B00000000, // 7
+  4, 8, B00110110, B01001001, B01001001, B00110110, B00000000, // 8
+  4, 8, B00000110, B01001001, B01001001, B00111110, B00000000, // 9
+  2, 8, B01010000, B00000000, B00000000, B00000000, B00000000, // :
+  2, 8, B10000000, B01010000, B00000000, B00000000, B00000000, // ;
+  3, 8, B00010000, B00101000, B01000100, B00000000, B00000000, // <
+  3, 8, B00010100, B00010100, B00010100, B00000000, B00000000, // =
+  3, 8, B01000100, B00101000, B00010000, B00000000, B00000000, // >
+  4, 8, B00000010, B01011001, B00001001, B00000110, B00000000, // ?
+  5, 8, B00111110, B01001001, B01010101, B01011101, B00001110, // @
+  4, 8, B01111110, B00010001, B00010001, B01111110, B00000000, // A
+  4, 8, B01111111, B01001001, B01001001, B00110110, B00000000, // B
+  4, 8, B00111110, B01000001, B01000001, B00100010, B00000000, // C
+  4, 8, B01111111, B01000001, B01000001, B00111110, B00000000, // D
+  4, 8, B01111111, B01001001, B01001001, B01000001, B00000000, // E
+  4, 8, B01111111, B00001001, B00001001, B00000001, B00000000, // F
+  4, 8, B00111110, B01000001, B01001001, B01111010, B00000000, // G
+  4, 8, B01111111, B00001000, B00001000, B01111111, B00000000, // H
+  3, 8, B01000001, B01111111, B01000001, B00000000, B00000000, // I
+  4, 8, B00110000, B01000000, B01000001, B00111111, B00000000, // J
+  4, 8, B01111111, B00001000, B00010100, B01100011, B00000000, // K
+  4, 8, B01111111, B01000000, B01000000, B01000000, B00000000, // L
+  5, 8, B01111111, B00000010, B00001100, B00000010, B01111111, // M
+  5, 8, B01111111, B00000100, B00001000, B00010000, B01111111, // N
+  4, 8, B00111110, B01000001, B01000001, B00111110, B00000000, // O
+  4, 8, B01111111, B00001001, B00001001, B00000110, B00000000, // P
+  4, 8, B00111110, B01000001, B01000001, B10111110, B00000000, // Q
+  4, 8, B01111111, B00001001, B00001001, B01110110, B00000000, // R
+  4, 8, B01000110, B01001001, B01001001, B00110010, B00000000, // S
+  5, 8, B00000001, B00000001, B01111111, B00000001, B00000001, // T
+  4, 8, B00111111, B01000000, B01000000, B00111111, B00000000, // U
+  5, 8, B00001111, B00110000, B01000000, B00110000, B00001111, // V
+  5, 8, B00111111, B01000000, B00111000, B01000000, B00111111, // W
+  5, 8, B01100011, B00010100, B00001000, B00010100, B01100011, // X
+  5, 8, B00000111, B00001000, B01110000, B00001000, B00000111, // Y
+  4, 8, B01100001, B01010001, B01001001, B01000111, B00000000, // Z
+  2, 8, B01111111, B01000001, B00000000, B00000000, B00000000, // [
+  4, 8, B00000001, B00000110, B00011000, B01100000, B00000000, // \ backslash
+  2, 8, B01000001, B01111111, B00000000, B00000000, B00000000, // ]
+  3, 8, B00000010, B00000001, B00000010, B00000000, B00000000, // hat
+  4, 8, B01000000, B01000000, B01000000, B01000000, B00000000, // _
+  2, 8, B00000001, B00000010, B00000000, B00000000, B00000000, // `
+  4, 8, B00100000, B01010100, B01010100, B01111000, B00000000, // a
+  4, 8, B01111111, B01000100, B01000100, B00111000, B00000000, // b
+  4, 8, B00111000, B01000100, B01000100, B00101000, B00000000, // c
+  4, 8, B00111000, B01000100, B01000100, B01111111, B00000000, // d
+  4, 8, B00111000, B01010100, B01010100, B00011000, B00000000, // e
+  3, 8, B00000100, B01111110, B00000101, B00000000, B00000000, // f
+  4, 8, B10011000, B10100100, B10100100, B01111000, B00000000, // g
+  4, 8, B01111111, B00000100, B00000100, B01111000, B00000000, // h
+  3, 8, B01000100, B01111101, B01000000, B00000000, B00000000, // i
+  4, 8, B01000000, B10000000, B10000100, B01111101, B00000000, // j
+  4, 8, B01111111, B00010000, B00101000, B01000100, B00000000, // k
+  3, 8, B01000001, B01111111, B01000000, B00000000, B00000000, // l
+  5, 8, B01111100, B00000100, B01111100, B00000100, B01111000, // m
+  4, 8, B01111100, B00000100, B00000100, B01111000, B00000000, // n
+  4, 8, B00111000, B01000100, B01000100, B00111000, B00000000, // o
+  4, 8, B11111100, B00100100, B00100100, B00011000, B00000000, // p
+  4, 8, B00011000, B00100100, B00100100, B11111100, B00000000, // q
+  4, 8, B01111100, B00001000, B00000100, B00000100, B00000000, // r
+  4, 8, B01001000, B01010100, B01010100, B00100100, B00000000, // s
+  3, 8, B00000100, B00111111, B01000100, B00000000, B00000000, // t
+  4, 8, B00111100, B01000000, B01000000, B01111100, B00000000, // u
+  5, 8, B00011100, B00100000, B01000000, B00100000, B00011100, // v
+  5, 8, B00111100, B01000000, B00111100, B01000000, B00111100, // w
+  5, 8, B01000100, B00101000, B00010000, B00101000, B01000100, // x
+  4, 8, B10011100, B10100000, B10100000, B01111100, B00000000, // y
+  3, 8, B01100100, B01010100, B01001100, B00000000, B00000000, // z
+  3, 8, B00001000, B00110110, B01000001, B00000000, B00000000, // {
+  1, 8, B01111111, B00000000, B00000000, B00000000, B00000000, // |
+  3, 8, B01000001, B00110110, B00001000, B00000000, B00000000, // }
+  4, 8, B00001000, B00000100, B00001000, B00000100, B00000000, // ~
+};
+
+
+// Init the DS3231 using the hardware interface
+DS3231  rtc(SDA, SCL);
+
+
+int data = 13;    // DIN pin of MAX7219 module
+int load = 11;    // CS pin of MAX7219 module
+int clock = 12;  // CLK pin of MAX7219 module
+
+int maxInUse = 8;  //how many MAX7219 are connected
+
+MaxMatrix m(data, load, clock, maxInUse); // define Library
+
+byte buffer[10];
+int string_length = 62;
+char string1[100] = "Universidad de Pamplona      ";  // Scrolling Text
+char string2[100] = "                                                    ";  // Scrolling Text
+
+int i = 0;
+int y = 0;
+int initial = 0;
+const unsigned char initialText[] PROGMEM ={"Open App and send text   "}; //This will be the initial displayed text
+String message ="";       //create an empty string to store the future received data 
+String prev_message ="";       //create an empty string to store the future received data 
+int mode = 1;
+int the_delay = 20;
+int Brightness = 15;
+bool off_once = false;
+
+
+void setup() {
+  Serial.begin(9600);
+  rtc.begin();
+  delay(20);
+  m.init(); // module MAX7219
+  m.setIntensity(Brightness); // LED Intensity 0-15
+  
+  //rtc.setDOW(MONDAY);     // Set Day-of-Week to SUNDAY
+  //rtc.setTime(15, 25, 0);     // Set the time to 12:00:00 (24hr format)
+  //rtc.setDate(26, 8, 2019);   // Set the date to January 1st, 2014
+}
+
+void loop() {
+  
+
+
+  ///////////////////////////////////////////////////////////////
+  while(Serial.available() > 0)
+  {    
+    prev_message = message;
+    message = Serial.readString(); //Store the bluetooth received text
+    //Serial.println(message.length());
+    Serial.println(message);
+    if(message.length() < string_length)
+    {
+      if(message[0] == 's' && message[1] == 'h' && message[2] == 'o' && message[3] == 'w' &&
+      message[4] == '_' && message[5] == 'h' && message[6] == 'o' && message[7] == 'u' && message[8] == 'r')
+      {        
+        mode = 3;
+        while(i < string_length)
+        {
+          string2[i] = '\0';
+          i = i + 1;
+        }
+      i = 0;
+      }//End mode 3 (receive show only hour)
+
+      
+      else if(message[0] == 's' && message[1] == 'h' && message[2] == 'o' && message[3] == 'w' &&
+      message[4] == '_' && message[5] == 't' && message[6] == 'i' && message[7] == 'm' && message[8] == 'e')
+      {
+        mode = 2;
+        while(i < string_length)
+        {
+          string2[i] = '\0';
+          i = i + 1;
+        }
+        i = 0;
+      }//End mode 2 (receive show full date)
+
+      else if(message[0] == 'd' && message[1] == 'e' && message[2] == 'l' && message[3] == 'a' &&
+      message[4] == 'y' && message[5] == '=')
+      { 
+        String delay_value = String (message[6]) + String (message[7]) + String (message[8]);
+        the_delay = delay_value.toInt();
+        //Serial.println(the_delay);
+        message = prev_message;
+      }//End (receive delay from BT)
+
+      else if(message[0] == 'b' && message[1] == 'r' && message[2] == 'i' && message[3] == 'g' &&
+      message[4] == 'h' && message[5] == 't' && message[6] == '=')
+      { 
+        String brightness_value = String (message[7]) + String (message[8]);
+        Brightness = brightness_value.toInt();
+        //Serial.println(Brightness);
+        if(Brightness > 15)
+        {
+          Brightness = 15;
+        }
+        if(Brightness < 1)
+        {
+          Brightness = 1;
+        }
+        m.setIntensity(Brightness); // LED Intensity 0-15
+        //Serial.println(the_delay);
+        message = prev_message;
+      }//End (receive brightness from BT)
+
+
+      else if(message[0] == 'p' && message[1] == 'w' && message[2] == 'r' && message[3] == '_' &&
+      message[4] == 'o' && message[5] == 'f' && message[6] == 'f')
+      {        
+        mode = 4; 
+        off_once = true;
+        while(i < string_length)
+        {
+          string1[i] = '\0';
+          i = i + 1;
+        }
+        i = 0;
+      
+        message = "Power off!                   ";
+        while(i < message.length())
+        {  
+          string1[i] = char(message[i]);     
+          i = i + 1;
+        }
+        i = 0;
+      }//End (receive power off from BT)
+      
+      else
+      {   
+        mode = 1;        
+        while(i < string_length)
+        {
+          string1[i] = '\0';
+          i = i + 1;
+        }
+        i = 0;
+      
+        message = message + "      ";
+        while(i < message.length())
+        {  
+          string1[i] = char(message[i]);     
+          i = i + 1;
+        }
+        i = 0;         
+      }//End mode 1 (receive text from BT)
+    }//End text below text-length
+
+
+    else
+    {
+      message = "Text too long!  Max 62 characters.     ";
+        while(i < message.length())
+        {  
+          string1[i] = char(message[i]);     
+          i = i + 1;
+        }
+        i = 0;        
+    }//End text too long
+  }//end while Serial.available()
+  ///////////////////////////////////////////////////////////////
+  
+  if(mode == 1)
+  {
+    printStringWithShift(string1, the_delay);  // Send scrolling Text
+  }//End print text (mode 1)
+  
+// 
+
+  if(mode == 4)
+  {
+    if(off_once)
+    {
+      printStringWithShift(string1, 1);  // Send scrolling Text
+      off_once = false;
+    }    
+  }//End print power off (mode 4)
+  
+
+}//end void loop
+
+
+
+
+// Put extracted character on Display
+void printCharWithShift(char c, int shift_speed) {
+  if (c < 32) return;
+  c -= 32;
+  memcpy_P(buffer, CH + 7 * c, 7);
+  m.writeSprite(maxInUse * 8, 0, buffer);
+  m.setColumn(maxInUse * 8 + buffer[0], 0);
+
+  for (int i = 0; i < buffer[0] + 1; i++)
+  {
+    delay(shift_speed);
+    m.shiftLeft(false, false);
+  }
+}
+
+// Extract characters from Scrolling text
+void printStringWithShift(char* s, int shift_speed) {
+  while (*s != 0) {
+    printCharWithShift(*s, shift_speed);
+    s++;
+  }
+}
